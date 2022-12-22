@@ -10,11 +10,13 @@ var VaillantAPI =
 {
     cookieJar: new net.CookieJar(),
     vaillantMobileApp: application.config.getString('vaillant.mobileApp', 'multiMATIC v2.1.45 b389 (Android)'),
+    userAgent: application.config.getString('vaillant.userAgent', 'Chinzilla/1.0'),
 
     getToken: function(username, password) {
         return new Promise((resolve, reject) => {
             console.log('Getting new token...');
             var tokenRequest = net.HTTPRequest.post('https://smart.vaillant.com/mobile/api/v4/account/authentication/v1/token/new');
+            tokenRequest.set('User-Agent', this.userAgent);
             tokenRequest.set('Vaillant-Mobile-App', this.vaillantMobileApp);
             tokenRequest.contentType = 'application/json';
             tokenRequest.content = JSON.stringify(
@@ -45,6 +47,7 @@ var VaillantAPI =
         return new Promise((resolve, reject) => {
             console.log('Authenticating with token...');
             var request = net.HTTPRequest.post('https://smart.vaillant.com/mobile/api/v4/account/authentication/v1/authenticate');
+            request.set('User-Agent', this.userAgent);
             request.set('Vaillant-Mobile-App', this.vaillantMobileApp);
             request.contentType = 'application/json';
             request.content = JSON.stringify(
@@ -74,6 +77,7 @@ var VaillantAPI =
     getJSON: function(uri) {
         return new Promise((resolve, reject) => {
             var request = net.HTTPRequest.get(uri);
+            request.set('User-Agent', this.userAgent);
             request.set('Vaillant-Mobile-App', this.vaillantMobileApp);
             this.cookieJar.addCookies(request);
             request.send(result => {
@@ -220,7 +224,7 @@ async function retryStoreMeasurements(username, password, serialNumber)
         try
         {
             const authToken = await VaillantAPI.getToken(username, password);
-            await VaillantAPI.authenticate('guenter@obiltschnig.com', authToken);
+            await VaillantAPI.authenticate(username, authToken);
             await storeMeasurements(serialNumber);
         }
         catch (err)
@@ -238,7 +242,7 @@ async function main()
         const username = application.config.getString('vaillant.username');
         const password = application.config.getString('vaillant.password');
         const authToken = await VaillantAPI.getToken(username, password);
-        await VaillantAPI.authenticate('guenter@obiltschnig.com', authToken);
+        await VaillantAPI.authenticate(username, authToken);
         const facilities = await VaillantAPI.getFacilities();
         const serialNumber = facilities.body.facilitiesList[0].serialNumber;
         console.log('Serial Number: %s', serialNumber);
